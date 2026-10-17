@@ -78,7 +78,7 @@ def session_settings(command: str):
 
 class Hub:
     def __init__(self):
-        self.token = os.environ.get("SLIC_BRIDGE_TOKEN") or secrets.token_urlsafe(18)   # env: tests only
+        self.token = os.environ.get("SLIC_BRIDGE_TOKEN") or ("t" + secrets.token_urlsafe(18))   # env: tests only; never starts with "-"
         self.lock = threading.Condition()
         self.job = None              # job waiting to be picked up
         self.results = {}
@@ -131,7 +131,7 @@ class Hub:
         if any('"' in p for p in parts):
             raise RuntimeError("A folder path contains a quote mark, which Firestorm can't handle.")
         prog = " ".join(f'"{p}"' for p in parts[:-1])
-        cmd = f'{prog} --app {app_url} --token {self.token} --log "{parts[-1]}"'
+        cmd = f'{prog} --app={app_url} --token={self.token} --log "{parts[-1]}"'
         settings = data_dir() / "firestorm-session.xml"
         settings.write_text(session_settings(cmd), encoding="utf-8")
         self.lost = False
