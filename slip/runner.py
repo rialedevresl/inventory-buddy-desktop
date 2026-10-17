@@ -58,7 +58,7 @@ def build_steps(session, rename_old=True):
             return pfolder
         if "@parent" not in refs:
             refs["@parent"] = "@parent"
-            add(op="create", parent="@root", name=pname, ref="@parent", label=f'Create folder "{pname}"')
+            add(op="create", parent="@root", name=pname, ref="@parent", label=f'Create folder “{pname}”')
         return "@parent"
 
     def tuck(fid):
@@ -67,7 +67,7 @@ def build_steps(session, rename_old=True):
             return
         tucked.add(fid)
         add(op="tuck", obj=fid, frm=inv.root, dest=parent_ref(), unit=None, cat=None,
-            uname=inv.folders[fid].name, label=f'Move folder "{inv.folders[fid].name}" into "{pname}"')
+            uname=inv.folders[fid].name, label=f'Move folder “{inv.folders[fid].name}” into “{pname}”')
 
     def top_ref(top):
         """The top category folder (in the parent folder, or My Inventory), made if it isn't there."""
@@ -79,12 +79,12 @@ def build_steps(session, rename_old=True):
                 if rename_old and inv.folders[tf].name != top["name"] and tf not in renamed:
                     renamed.add(tf)
                     add(op="rename", obj=tf, name=top["name"], old=inv.folders[tf].name,
-                        label=f'Rename folder "{inv.folders[tf].name}" to "{top["name"]}"')
+                        label=f'Rename folder “{inv.folders[tf].name}” to “{top["name"]}”')
                 tuck(tf)
             else:
                 refs[tkey] = tkey
                 add(op="create", parent=parent_ref(), name=top["name"], ref=tkey,
-                    label=f'Create folder "{pname + " › " if pname else ""}{top["name"]}"')
+                    label=f'Create folder “{pname + " › " if pname else ""}{top["name"]}”')
         return refs[tkey]
 
     adopted = getattr(sorter, "adopted", {})
@@ -102,11 +102,11 @@ def build_steps(session, rename_old=True):
             if f.name != sub["name"]:
                 renamed.add(existing)
                 add(op="rename", obj=existing, name=sub["name"], old=f.name,
-                    label=f'Rename folder "{f.name}" to "{sub["name"]}"')
+                    label=f'Rename folder “{f.name}” to “{sub["name"]}”')
             dest = top_ref(top)
             add(op="tuck", obj=existing, frm=f.parent, dest=dest, unit=None, cat=None, uname=sub["name"],
-                label=f'Move folder "{sub["name"]}" (was "{f.name}" in {inv.path_text(f.parent)}) into '
-                      f'"{pname + " › " if pname else ""}{top["name"]}"')
+                label=f'Move folder “{sub["name"]}” (was “{f.name}” in {inv.path_text(f.parent)}) into '
+                      f'“{pname + " › " if pname else ""}{top["name"]}”')
             continue
         if existing:
             refs[sid] = existing
@@ -114,13 +114,13 @@ def build_steps(session, rename_old=True):
             if rename_old and f.name != sub["name"] and existing not in renamed:
                 renamed.add(existing)
                 add(op="rename", obj=existing, name=sub["name"], old=f.name,
-                    label=f'Rename folder "{f.name}" to "{sub["name"]}"')
+                    label=f'Rename folder “{f.name}” to “{sub["name"]}”')
             parent = f.parent
             if rename_old and parent in inv.folders and parent != inv.root and parent not in renamed \
                     and parent in (top_f.get(top["id"]) or []) and inv.folders[parent].name != top["name"]:
                 renamed.add(parent)
                 add(op="rename", obj=parent, name=top["name"], old=inv.folders[parent].name,
-                    label=f'Rename folder "{inv.folders[parent].name}" to "{top["name"]}"')
+                    label=f'Rename folder “{inv.folders[parent].name}” to “{top["name"]}”')
             if parent in (top_f.get(top["id"]) or []):
                 tuck(parent)
             continue
@@ -128,7 +128,7 @@ def build_steps(session, rename_old=True):
         skey = "@sub:" + sid
         refs[sid] = skey
         add(op="create", parent=tref, name=sub["name"], ref=skey,
-            label=f'Create folder "{top["name"]} › {sub["name"]}"')
+            label=f'Create folder “{top["name"]} › {sub["name"]}”')
 
     moves = []
     whole = _whole_folders(session, plan)
@@ -141,7 +141,7 @@ def build_steps(session, rename_old=True):
         frm = u.parent if u.kind == "product" else u.folder
         if cat == TRASH:
             moves.append((2, "", dict(op="trash", obj=obj, frm=frm, dest="@trash", unit=uid, cat=cat, uname=u.name,
-                                      label=f'Send "{u.name}" to Trash', nocopy=u.nocopy,
+                                      label=f'Send “{u.name}” to Trash', nocopy=u.nocopy,
                                       where=inv.path_text(frm) if frm in inv.folders else "")))
         else:
             moves.append((1, cat, _move_step(sorter, refs, uid, cat, obj, frm)))
@@ -154,7 +154,7 @@ def build_steps(session, rename_old=True):
             split.append(_move_step(sorter, refs, uid, cat, uid[2:], u.folder))
         moves.append((1, cat, dict(op="move", obj=fid, frm=f.parent, dest=refs[cat], unit=None, cat=cat,
                                    units=w["units"], uname=f.name, names=[s["uname"] for s in split],
-                                   split=split, label=f'Move folder "{f.name}" ({len(split)} things) to {sub["name"]}')))
+                                   split=split, label=f'Move folder “{f.name}” ({len(split)} things) to {sub["name"]}')))
     # Everything going to the same folder runs together.
     order = {c: i for i, c in enumerate(needed)}
     for _, _, m in sorted(moves, key=lambda x: (x[0], order.get(x[1], -1), x[2]["label"].lower())):
@@ -166,7 +166,7 @@ def _move_step(sorter, refs, uid, cat, obj, frm):
     u = sorter.units[uid]
     name = SPECIAL.get(cat) or sorter.subs[cat]["name"]
     return dict(op="move", obj=obj, frm=frm, dest=refs[cat], unit=uid, cat=cat, uname=u.name,
-                label=f'Move "{u.name}" to {name}')
+                label=f'Move “{u.name}” to {name}')
 
 
 MIN_WHOLE = 3
@@ -217,7 +217,7 @@ def summarize(steps, session):
         "total": len(steps),
         "moves": sum(1 for s in steps if s["op"] == "move"),
         "folders": sum(1 for s in steps if s["op"] == "move" and s.get("units")),
-        "creates": [s["label"].replace("Create folder ", "").strip('"') for s in steps if s["op"] == "create"],
+        "creates": [s["label"].replace("Create folder ", "").strip('“”') for s in steps if s["op"] == "create"],
         "renames": [{"old": s["old"], "new": s["name"]} for s in steps if s["op"] == "rename"],
         "tucks": [s["uname"] for s in steps if s["op"] == "tuck"],
         "parent": session.sorter.parent_setting(),
@@ -419,10 +419,10 @@ def undo_steps(log):
                             units=s.get("units"), cat=s.get("cat"), label="Put back: " + s["label"], status="todo"))
         elif s["op"] == "rename":
             out.append(dict(op="rename", obj=s["obj"], name=s["old"], old=s["name"],
-                            label=f'Rename "{s["name"]}" back to "{s["old"]}"', status="todo"))
+                            label=f'Rename “{s["name"]}” back to “{s["old"]}”', status="todo"))
         elif s["op"] == "create" and s.get("created"):
             out.append(dict(op="trash", obj=s["created"], frm=None, dest="@trash", unit=None, cat=None,
-                            label=f'Send the new empty folder "{s["name"]}" to Trash', status="todo", empty_only=True))
+                            label=f'Send the new empty folder “{s["name"]}” to Trash', status="todo", empty_only=True))
     for i, s in enumerate(out):
         s["n"] = i + 1
     return out

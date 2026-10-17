@@ -1307,6 +1307,7 @@ async function planPage() {
   stopRunTimer();
   const [st, pv] = await Promise.all([api("/api/run/status"), api("/api/run/preview")]);
   fsPill(st);
+  setPlanBadge({ plan: pv.total });
   const b = st.bridge;
   const mismatch = b.ready && b.root !== st.inventory_root;
   const running = st.run && ["running", "paused", "stopping"].includes(st.run.state);
