@@ -1,3 +1,15 @@
+**What's new in 1.0.2**
+
+- Fixed the app sometimes getting stuck on "Firestorm is starting" after you'd logged in.
+- The category list on Sort keeps its place and no longer jumps around, and categories open while you drag something over them.
+- The step list after a run sits in a tidy scroll box.
+- The Plan & Run badge clears after a run, and item names in the step list no longer show doubled quotes.
+- New tips: runs take a while (a few minutes for 400 items), and pause the run before using Firestorm.
+
+Already have it? Download the new zip and replace your old folder. Your categories and choices carry over.
+
+---
+
 **Inventory Buddy Desktop 1.0** ♡ an inventory organizer for Second Life®, by Ria Ledevre.
 
 It reads your inventory through Firestorm, helps you sort it into tidy category folders, finds

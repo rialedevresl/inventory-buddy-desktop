@@ -10,7 +10,7 @@ suggestions. When you press Run, it moves things in Firestorm for you, and every
 be undone. It never sees your password. It's free, and the code is public so you can
 see exactly what it does.
 
-Works with Firestorm on Windows. Current version: **1.0.1**.
+Works with Firestorm on Windows. Current version: **1.0.2**.
 
 ## Get started
 
@@ -18,7 +18,7 @@ Works with Firestorm on Windows. Current version: **1.0.1**.
 
 1. Install Python once. It's free from [python.org](https://www.python.org/downloads/).
    The default choices are fine.
-2. Download **Inventory-Buddy-Desktop-1.0.1.zip** from the
+2. Download **Inventory-Buddy-Desktop-1.0.2.zip** from the
    [Releases page](https://github.com/rialedevresl/inventory-buddy-desktop/releases).
 3. Right-click the zip, choose **Extract All…**, and keep the folder somewhere like Documents.
 4. Double-click **Start Inventory Buddy Desktop** in that folder.
@@ -32,7 +32,7 @@ A little honesty about the installer: Windows fully trusts apps from companies t
 for a code-signing certificate every year. I'm one person making a free tool, so the
 installer isn't signed (yet!).
 
-1. Download **Inventory-Buddy-Desktop-Setup-1.0.1.exe** from the
+1. Download **Inventory-Buddy-Desktop-Setup-1.0.2.exe** from the
    [Releases page](https://github.com/rialedevresl/inventory-buddy-desktop/releases).
 2. Run it. If Windows shows a blue **"Windows protected your PC"** box, press
    **More info**, then **Run anyway**. That's Windows being careful with anything it
@@ -121,7 +121,7 @@ Run it from the source code:
     py run_app.py      # the app in your browser, with a console window
 
 GitHub builds the zip and installer on every push (`.github/workflows/build-windows.yml`).
-Publishing a release with a version tag such as `v1.0.1` attaches them to the Releases page.
+Publishing a release with a version tag such as `v1.0.2` attaches them to the Releases page.
 
 ---
 
