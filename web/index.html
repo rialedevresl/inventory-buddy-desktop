@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="app-token" content="__APP_TOKEN__">
+<title>Inventory Buddy Desktop</title>
+<link rel="stylesheet" href="app.css">
+<link rel="icon" type="image/png" href="icon.png">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#/overview" title="Home">
+      <img src="icon.png" alt="" width="34" height="34">
+      Inventory Buddy Desktop
+    </a>
+    <nav aria-label="Main">
+      <a href="#/overview" data-nav="overview">Overview</a>
+      <a href="#/sort" data-nav="sort">Sort</a>
+      <a href="#/duplicates" data-nav="duplicates">Duplicates</a>
+      <a href="#/plan" data-nav="plan">Plan &amp; Run <span class="nav-badge" id="plan-badge" hidden></span></a>
+      <a href="#/folders" data-nav="folders">Folders</a>
+      <a href="#/categories" data-nav="categories">Categories</a>
+      <a href="#/about" data-nav="about">About</a>
+    </nav>
+    <div class="top-right">
+      <span class="pill" id="fs-pill" title="Firestorm connection">Firestorm not connected</span>
+      <label for="inv-pick" class="muted small">Inventory</label>
+      <select id="inv-pick"></select>
+      <button type="button" id="rescan" class="btn">Rescan</button>
+    </div>
+  </div>
+</header>
+<main id="view" tabindex="-1">
+  <p class="muted">Loading your inventory…</p>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>

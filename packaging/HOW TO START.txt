@@ -1,0 +1,32 @@
+Inventory Buddy Desktop - how to start it
+=======================================
+
+You need Python once (it's free and safe, and Windows trusts it):
+
+  1. Go to https://www.python.org/downloads/ and press the yellow
+     Download button for Windows.
+  2. Run what it downloads and follow the steps (the default choices are fine).
+
+Then:
+
+  3. Right-click the Inventory Buddy Desktop zip you downloaded and choose
+     "Extract All...". Put the folder somewhere you'll keep it, like Documents.
+  4. Open the folder and double-click "Start Inventory Buddy Desktop".
+     The app opens in its own window.
+     (If Windows asks which app to open it with, pick Python.)
+
+The first time it starts, the app puts an "Inventory Buddy Desktop" shortcut
+with its icon on your desktop, so next time you can start it from there.
+(Don't want it? Just delete the shortcut; it won't come back.)
+
+Using it
+  - Quit Firestorm first, then press "Start Firestorm" in the app and log in
+    as usual. The app never sees your password.
+  - Nothing in your inventory changes until you press Run on the Plan & Run
+    page, and every run can be undone.
+  - Close the window when you're done. The app stops by itself shortly after
+    (it stays on while Firestorm is connected, so you can reopen the window).
+
+Your categories and choices are saved in %APPDATA%\SL Inventory Cleanup,
+so they carry over when you update to a newer version: just replace this
+folder with the new one.

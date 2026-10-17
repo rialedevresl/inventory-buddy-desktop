@@ -1,0 +1,93 @@
+# Builds the Windows installer on GitHub's Windows machines.
+#  - Every push to main: builds and keeps the installer as a download on the run's page (for testing).
+#  - A version tag (e.g. v0.10.0): also publishes it on the Releases page.
+name: Build Windows installer
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Read the version
+        id: ver
+        shell: bash
+        run: |
+          v=$(python -c "import slip; print(slip.__version__)")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Building version $v"
+
+      - name: Check the code before building
+        shell: bash
+        run: |
+          python -m compileall -q slip desktop.py bridge_main.py run_app.py
+          python -c "import slip.server, slip.bridge_plugin; print('imports ok')"
+
+      - name: Make the ready-to-share zip (Python version)
+        run: python packaging/make_zip.py
+
+      - name: Keep the zip with this run
+        uses: actions/upload-artifact@v4
+        with:
+          name: Inventory-Buddy-Desktop-${{ steps.ver.outputs.version }}-zip
+          path: dist/Inventory-Buddy-Desktop-*.zip
+          retention-days: 30
+
+      - name: Build the programs (PyInstaller)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "pyinstaller>=6.10,<7"
+          pyinstaller --noconfirm --clean packaging/sl-inventory-cleanup.spec
+
+      - name: Check the built programs start
+        shell: bash
+        run: |
+          ls -la dist/SLInventoryCleanup
+          test -f dist/SLInventoryCleanup/SLInventoryCleanup.exe
+          test -f dist/SLInventoryCleanup/SLInventoryCleanupBridge.exe
+          test -f dist/SLInventoryCleanup/_internal/web/index.html
+          # The bridge should start and complain that it wasn't given its settings (proves it runs).
+          ./dist/SLInventoryCleanup/SLInventoryCleanupBridge.exe --help | head -3
+
+      - name: Make the installer (Inno Setup)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue) -and -not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc "/DAppVersion=${{ steps.ver.outputs.version }}" packaging\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem dist\installer
+
+      - name: Keep the installer with this run
+        uses: actions/upload-artifact@v4
+        with:
+          name: Inventory-Buddy-Desktop-Setup-${{ steps.ver.outputs.version }}
+          path: dist/installer/*.exe
+          retention-days: 30
+
+      - name: Publish on the Releases page (version tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/Inventory-Buddy-Desktop-*.zip dist/installer/*.exe \
+            --title "SL Inventory Cleanup ${{ steps.ver.outputs.version }}" \
+            --notes-file packaging/release-notes.md \
+            || gh release upload "${GITHUB_REF_NAME}" dist/Inventory-Buddy-Desktop-*.zip dist/installer/*.exe --clobber
