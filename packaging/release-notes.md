@@ -4,7 +4,7 @@ It reads your inventory through Firestorm, helps you sort it into tidy category 
 duplicates, gathers your landmarks and windlights, and only changes anything when you press Run,
 with every step checked and an undo. It never sees your password.
 
-**Recommended: the zip** (`Inventory-Buddy-Desktop-<version>.zip`). It needs Python, free from
+**Recommended: the zip** (the Inventory-Buddy-Desktop .zip file below). It needs Python, free from
 python.org, installed once. Extract the zip and double-click **Start Inventory Buddy Desktop**.
 "HOW TO START.txt" inside walks you through it, and the app puts a shortcut on your desktop.
 
