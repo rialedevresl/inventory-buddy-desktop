@@ -12,7 +12,7 @@ password. Free to use, and the code is public so you can see exactly what it doe
 ## Start it (Windows)
 
 The simplest way, which works on every PC: get Python once from python.org,
-download **Inventory-Buddy-Desktop-<version>.zip**, extract it, and double-click
+download **Inventory-Buddy-Desktop-1.0.0.zip** from the [Releases page](https://github.com/rialedevresl/inventory-buddy-desktop/releases), extract it, and double-click
 **Start Inventory Buddy Desktop**. The app opens in its own window, with no
 console. `HOW TO START.txt` in the zip walks through it.
 
@@ -25,7 +25,7 @@ box. That's Windows being careful with anything it doesn't recognize, not a sign
 anything is wrong. On some newer PCs, **Smart App Control** blocks unsigned apps
 completely, and there's no way around it. If that happens, the zip works everywhere.
 
-1. Download **Inventory-Buddy-Desktop-Setup-<version>.exe** from the [Releases page](https://github.com/rialedevresl/inventory-buddy-desktop/releases).
+1. Download **Inventory-Buddy-Desktop-Setup-1.0.0.exe** from the [Releases page](https://github.com/rialedevresl/inventory-buddy-desktop/releases).
 2. Run it. Windows may say "Windows protected your PC" because the app isn't
    signed yet: press **More info**, then **Run anyway**.
 3. Open **Inventory Buddy Desktop** from the Start menu (or the desktop shortcut).
