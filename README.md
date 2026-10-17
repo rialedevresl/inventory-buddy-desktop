@@ -127,7 +127,7 @@ gets wrong. If something lands in the wrong category, or anything feels confusin
 tell me! Item names and where they should have gone help the most.
 
 - **Instagram:** [@ledeverse](https://www.instagram.com/ledeverse/)
-- **In-world:** IM **Ria Ledevre**
+- **In-world:** **Ria Ledevre**
 
 ## License
 
