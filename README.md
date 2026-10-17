@@ -110,9 +110,14 @@ When it opens you'll see one screen: **Let's get your inventory**.
 
 ## Privacy
 
-Everything runs on your computer. The app's page is only reachable from
-this computer. The only thing sent out is thumbnail texture IDs to Second
-Life's picture service, when thumbnails are switched on.
+Everything stays on your computer. Your inventory, your sorting choices and
+your run history are never sent anywhere, not to me and not to anyone else.
+The app opens in its own window, and no other computer can reach it.
+
+The one exception is pictures. If you turn on **Show pictures** (on the
+Categories page), the app asks Second Life's own picture service for your
+folder images, the same way Firestorm loads them. Only the picture IDs are
+sent, nothing about you or your account.
 
 ## Credits
 
