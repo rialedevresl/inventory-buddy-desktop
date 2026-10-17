@@ -2,8 +2,6 @@
 
 # Inventory Buddy Desktop — v1.0.0
 
-<img src="docs/ria.jpg" width="220" align="right" alt="Ria Ledevre, sorting boxes">
-
 **An inventory organizer for Second Life®**, made by
 [Ria Ledevre](https://www.instagram.com/ledeverse/), the creator of Inventory Buddy.
 
