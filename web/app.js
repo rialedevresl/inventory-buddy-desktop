@@ -1381,6 +1381,7 @@ function step(n, title, state, body) {
 }
 
 const PROFILE = "https://www.instagram.com/ledeverse/";
+const FEEDBACK = "https://forms.gle/3xLb9AMczW2dhWW59";
 const REPO = "https://github.com/rialedevresl/inventory-buddy-desktop";
 const SIGNATURE = "signature.png";
 async function aboutPage() {
@@ -1408,8 +1409,8 @@ async function aboutPage() {
     h("div", { class: "lfoot" },
       h("p", {}, h("b", {}, "Inventory Buddy Desktop"), version ? ` · version ${version}` : "",
         " · An inventory organizer for Second Life®"),
-      h("p", {}, h("b", {}, "Something sorted wrong, or an idea?"), " I’d love to hear it. Message me on ", ext(PROFILE, "Instagram"),
-        " or IM Ria Ledevre in-world: item names and where they should have gone help me improve the sorting."),
+      h("p", {}, h("b", {}, "Something sorted wrong, or an idea?"), " I’d love to hear it. Fill in the ", ext(FEEDBACK, "feedback form"), ", message me on ", ext(PROFILE, "Instagram"),
+        ", or IM Ria Ledevre in-world. Item names and where they should have gone help me improve the sorting."),
       h("p", {}, "Updates, and the code so you can see exactly what it does, are on ", ext(REPO, "GitHub"), "."),
       h("p", { class: "fine" }, "Second Life® is a trademark of Linden Research, Inc. Inventory Buddy Desktop is not affiliated with or endorsed by Linden Lab."))));
 }

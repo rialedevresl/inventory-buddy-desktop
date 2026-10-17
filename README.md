@@ -89,6 +89,7 @@ The sorting learns from how you organize, but it can only get better if I hear w
 gets wrong. If something lands in the wrong category, or anything feels confusing, please
 tell me! Item names and where they should have gone help the most.
 
+- **Feedback form:** [tell me here](https://forms.gle/3xLb9AMczW2dhWW59) (no sign-in needed)
 - **Instagram:** [@ledeverse](https://www.instagram.com/ledeverse/)
 - **In-world:** **Ria Ledevre**
 
