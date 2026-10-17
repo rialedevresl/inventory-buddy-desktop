@@ -92,6 +92,11 @@ tell me! Item names and where they should have gone help the most.
 - **Instagram:** [@ledeverse](https://www.instagram.com/ledeverse/)
 - **In-world:** **Ria Ledevre**
 
+## Say thanks ☕
+
+Inventory Buddy Desktop is free and always will be. If it saved you hours of sorting and
+you'd like to say thank you, you can [buy me a coffee](https://buymeacoffee.com/rialedevresl) ♡
+
 ## Credits
 
 Made by Ria Ledevre for the Second Life community. Built with help from Claude (Anthropic).
