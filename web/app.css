@@ -163,6 +163,9 @@ a.card:hover { border-color: #C9B6E4; }
 .tbadge { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--line-soft); color: var(--ink-2); }
 .tbadge.ok { background: var(--accent); color: #fff; }
 .tbadge.new, .chip.new { background: var(--amber-soft); color: var(--amber); }
+.tkids[hidden] { display: none; }
+.tgroup { display: flex; flex-direction: column; gap: 2px; } .tkids { display: flex; flex-direction: column; gap: 2px; }
+.drop-peek { background: var(--accent-soft); }
 .drop-on { outline: 3px dashed #A58BE8; outline-offset: -3px; background: var(--accent-soft) !important; }
 .smain { flex: 999 1 620px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 .smain h1 { margin: 0 0 4px; font-size: 30px; }

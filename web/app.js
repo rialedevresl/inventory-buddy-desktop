@@ -821,6 +821,22 @@ let sortSelectMode = false;
 let openTops = new Set();
 let lastTop = null;      // the category you were last in: moving to another one closes it
 let dragIds = null;
+let streeScroll = 0;      // the category list scrolls on its own: keep its place when the page redraws
+
+// Opens or closes a category in place, without redrawing the page (so a drag in progress keeps going).
+function toggleTop(id, head, kids, open, only) {
+  if (open && only) {
+    document.querySelectorAll(".stree .tgroup").forEach((g) => {
+      const k = g.querySelector(".tkids"), b = g.querySelector(".ttop");
+      if (k !== kids) { k.hidden = true; b.setAttribute("aria-expanded", "false"); }
+    });
+    openTops = new Set();
+  }
+  open ? openTops.add(id) : openTops.delete(id);
+  kids.hidden = !open;
+  head.setAttribute("aria-expanded", open ? "true" : "false");
+  head.classList.remove("drop-peek");
+}
 
 function setPlanBadge(tree) {
   const b = document.getElementById("plan-badge");
@@ -1130,16 +1146,25 @@ async function sortPage(cid) {
       h("div", { class: "bar" }, h("div", { style: { width: `${tree.categories ? (100 * tree.checked) / tree.categories : 0}%` } })),
       h("a", { class: "linkbtn small", href: "#/sort/folders" }, "Choose which folders to sort")),
     tree.tops.map((t) => {
-      const open = openTops.has(t.id);
-      return [
-        h("button", { type: "button", class: "ttop", "aria-expanded": open ? "true" : "false",
-          onclick: () => { openTops = open ? new Set([...openTops].filter((x) => x !== t.id)) : new Set([t.id]); route({ keepScroll: true }); } },
-          h("span", { class: "tname" }, t.name), h("span", { class: "tbadge" }, t.checked === t.children.length && t.children.length ? "✓" : fmt(t.count))),
-        open ? t.children.map((c) => dropTarget(h("a", { href: `#/sort/${c.id}`, class: "tsub" + (c.id === current ? " on" : "") },
+      const kids = h("div", { class: "tkids", hidden: !openTops.has(t.id) },
+        t.children.map((c) => dropTarget(h("a", { href: `#/sort/${c.id}`, class: "tsub" + (c.id === current ? " on" : "") },
           h("span", { class: "tname" }, c.name),
           h("span", { class: "tbadge" + (c.approved ? " ok" : c.new ? " new" : ""), title: c.new ? `${fmt(c.new)} new since you checked it` : null },
-            c.approved ? "✓" : c.new ? `${fmt(c.new)} new` : fmt(c.count))), c.id, c.name)) : null,
-      ];
+            c.approved ? "✓" : c.new ? `${fmt(c.new)} new` : fmt(c.count))), c.id, c.name)));
+      const head = h("button", { type: "button", class: "ttop", "aria-expanded": openTops.has(t.id) ? "true" : "false",
+          onclick: () => toggleTop(t.id, head, kids, !openTops.has(t.id), true) },
+          h("span", { class: "tname" }, t.name), h("span", { class: "tbadge" }, t.checked === t.children.length && t.children.length ? "✓" : fmt(t.count)));
+      // While dragging, resting on a closed category opens it so you can drop into its subcategories.
+      let peek = null;
+      head.addEventListener("dragenter", () => {
+        if (!dragIds || openTops.has(t.id)) return;
+        head.classList.add("drop-peek");
+        clearTimeout(peek); peek = setTimeout(() => toggleTop(t.id, head, kids, true, false), 450);
+      });
+      head.addEventListener("dragover", (e) => { if (dragIds) e.preventDefault(); });
+      head.addEventListener("dragleave", () => { clearTimeout(peek); head.classList.remove("drop-peek"); });
+      head.addEventListener("drop", (e) => { e.preventDefault(); clearTimeout(peek); head.classList.remove("drop-peek"); });
+      return h("div", { class: "tgroup" }, head, kids);
     }),
     dropTarget(h("a", { href: "#/sort/unsure", class: "ttop unsure" + (current === "unsure" ? " on" : "") },
       h("span", { class: "tname" }, "Not sure yet"), h("span", { class: "tbadge" }, fmt(tree.unsure))), "unsure", "Not sure yet"),
@@ -1216,7 +1241,17 @@ async function sortPage(cid) {
         "Clean out packaging in all of them")) : null,
     cat.total ? grid : h("div", { class: "panel empty" }, "Nothing is headed here yet."),
     cat.total > cat.units.length ? h("p", { class: "muted small" }, `Showing ${fmt(cat.units.length)} of ${fmt(cat.total)}.`) : null);
+  const prev = view.querySelector(".stree");
+  if (prev) streeScroll = prev.scrollTop;
+  side.addEventListener("scroll", () => { streeScroll = side.scrollTop; }, { passive: true });
   show(h("div", { class: "swrap" }, side, mainCol));
+  side.scrollTop = streeScroll;
+  const on = side.querySelector(".on");
+  if (on) {
+    const top = on.getBoundingClientRect().top - side.getBoundingClientRect().top + side.scrollTop, bottom = top + on.offsetHeight;
+    if (top < side.scrollTop) side.scrollTop = top - 40;
+    else if (bottom > side.scrollTop + side.clientHeight) side.scrollTop = bottom - side.clientHeight + 40;
+  }
   updateSelBar();
 }
 
@@ -1281,7 +1316,7 @@ async function planPage() {
         : "Firestorm is connected and logged in.")
     : h("div", { class: "toolbar" },
         h("button", { type: "button", class: "btn primary", disabled: b.launched || b.connected ? true : null, onclick: async () => {
-          try { await api("/api/run/connect", { method: "POST", body: {} }); toast("Starting Firestorm — log in as usual"); planPage(); }
+          try { await api("/api/run/connect", { method: "POST", body: {} }); toast("Starting Firestorm. Please log in like usual."); planPage(); }
           catch (err) { toast(err.message); } } }, b.connected ? "Waiting for you to log in…" : b.launched ? "Firestorm is starting…" : "Start Firestorm with Inventory Buddy"),
         h("span", { class: "muted small" }, "Quit Firestorm first if it’s open. You log in yourself — the app never sees your password."));
   const trashRow = (t) => h("li", {},
@@ -1435,7 +1470,7 @@ async function connectPage(sess) {
     : sc.state === "error" ? sc.message
     : sc.state === "scanning" ? (sc.message || "Reading your inventory…")
     : b.ready ? "Logged in. Reading your inventory starts by itself…"
-    : b.connected ? "Firestorm is open. Log in as usual: the app never sees your password."
+    : b.connected ? "Please log in like usual. Inventory Buddy does not receive any of your login details."
     : b.launched ? "Firestorm is starting…"
     : "Press Start Firestorm in the picture to begin.";
   const start = async () => {
