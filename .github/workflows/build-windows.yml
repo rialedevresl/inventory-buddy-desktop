@@ -1,6 +1,6 @@
 # Builds the Windows installer on GitHub's Windows machines.
 #  - Every push to main: builds and keeps the installer as a download on the run's page (for testing).
-#  - A version tag (e.g. v0.10.0): also publishes it on the Releases page.
+#  - A version tag (e.g. v1.0.0): also publishes it on the Releases page.
 name: Build Windows installer
 
 on:
@@ -88,6 +88,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${GITHUB_REF_NAME}" dist/Inventory-Buddy-Desktop-*.zip dist/installer/*.exe \
-            --title "SL Inventory Cleanup ${{ steps.ver.outputs.version }}" \
+            --title "Inventory Buddy Desktop ${{ steps.ver.outputs.version }}" \
             --notes-file packaging/release-notes.md \
             || gh release upload "${GITHUB_REF_NAME}" dist/Inventory-Buddy-Desktop-*.zip dist/installer/*.exe --clobber
