@@ -66,6 +66,10 @@ Good to know:
 
 - Nothing changes in Second Life until you press Run. Only things you moved yourself, or that
   sit in a category you checked, are part of a run.
+- **Runs take a while.** The app moves things one by one, the way you would by hand. You don't
+  have to sort everything first: run what you've checked, and keep sorting while it works.
+- **Need to reply to someone in-world?** Press **Pause** on the run first. Clicking or typing in
+  Firestorm while it runs can mix things up. Press **Resume** when you're done.
 - Anything sent to Trash goes to Firestorm's Trash. The app never empties it.
 - If you close Firestorm, the app locks until you start it again. Your choices are kept.
 - Close the app's window when you're done. It quits by itself shortly after.
