@@ -1298,7 +1298,7 @@ function runPanel(st) {
       : (!r.undo && r.done ? h("div", { class: "toolbar" },
           h("button", { type: "button", class: "btn", onclick: async () => {
             try { await api("/api/run/undo", { method: "POST", body: { log: r.log } }); planPage(); } catch (err) { toast(err.message); } } }, "Undo this run")) : null),
-    r.recent.length ? h("ol", { class: "runlog" }, r.recent.slice().reverse().map((l) => h("li", {}, "✓ ", l))) : null,
+    r.recent.length ? h("ol", { class: "runlog box" }, r.recent.slice().reverse().map((l) => h("li", {}, "✓ ", l))) : null,
     r.problems.length ? h("div", { class: "confirm" }, h("b", {}, `${r.problems.length} step(s) didn't happen:`),
       h("ul", {}, r.problems.slice(-10).map((p) => h("li", {}, `${p.label} — ${p.note}`)))) : null);
 }
