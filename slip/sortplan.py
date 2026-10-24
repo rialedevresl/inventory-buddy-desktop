@@ -20,6 +20,7 @@ import hashlib
 import json
 import re
 import threading
+import time
 from pathlib import Path
 
 from .categories import data_dir
@@ -42,6 +43,7 @@ class SortSession:
         self.locked: dict[str, str] = {}     # suggestions frozen when you checked their category
         self.seen: dict[str, set] = {}        # category id -> unit ids it held when you checked it
         self.done: dict[str, str] = {}       # things a run already moved (unit id -> category or trash)
+        self.done_at = 0.0                   # when a run last added to that
         self.split: set[str] = set()
         self.joined: set[str] = set()
         self.hidden: set[str] = set()        # duplicate sets you said aren't duplicates
@@ -67,6 +69,7 @@ class SortSession:
             self._seen_saved = "seen" in d
             self.seen = {str(k): {str(x) for x in v} for k, v in (d.get("seen") or {}).items()}
             self.done = {str(k): str(v) for k, v in (d.get("done") or {}).items()}
+            self.done_at = float(d.get("done_at") or 0)
             self.split = {str(x) for x in d.get("split") or []}
             self.joined = {str(x) for x in d.get("joined") or []}
             self.hidden = {str(x) for x in d.get("hidden_dups") or []}
@@ -78,7 +81,7 @@ class SortSession:
     def _save(self):
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(json.dumps({"version": 3, "assign": self.assign, "locked": self.locked,
-                                   "approved": sorted(self.approved), "done": self.done,
+                                   "approved": sorted(self.approved), "done": self.done, "done_at": self.done_at,
                                    "seen": {k: sorted(v) for k, v in self.seen.items() if k in self.approved},
                                    "split": sorted(self.split), "joined": sorted(self.joined),
                                    "hidden_dups": sorted(self.hidden), "skipped_folders": sorted(self.skipped),
@@ -130,6 +133,8 @@ class SortSession:
 
     def _apply_done(self):
         """The saved inventory doesn't know about moves a run made since; reflect them."""
+        if self.inv.live and self.inv.saved.timestamp() > self.done_at:
+            self._forget_moved_since()
         for uid, cat in self.done.items():
             u = self.sorter.units.get(uid)
             if u is None:
@@ -142,8 +147,21 @@ class SortSession:
                 u.current = cat
         self._copies = None
 
+    def _forget_moved_since(self):
+        """A scan newer than the last run shows where things really are: anything you moved by hand
+        since (or pulled back out of Trash) stays where you put it."""
+        units = self.sorter.units
+        for uid, cat in list(self.done.items()):
+            u = units.get(uid)
+            if u is None:
+                if cat != TRASH:
+                    self.done.pop(uid)
+            elif cat == TRASH or (u.home if cat in SPECIAL else u.current) != cat:
+                self.done.pop(uid)
+
     def after_run(self, steps, undo=False):
         with self.lock:
+            self.done_at = time.time()
             self._lm = None
             self.sorter._homes = None        # folders this run made count as sorted ones
             for s in steps:

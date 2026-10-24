@@ -271,7 +271,8 @@ class Run:
         return {"state": self.state, "message": self.message, "total": total, "done": done,
                 "problems": [{"label": s["label"], "note": s.get("note", ""), "status": s["status"]} for s in bad][-50:],
                 "current": self.current, "log": self.log_path.name, "undo": bool(self.undo_of),
-                "recent": [s["label"] for s in self.steps if s["status"] == "done"][-8:]}
+                "recent": [s["label"] for s in self.steps if s["status"] == "done"][-8:],
+                "undo_of": self.undo_of}
 
     # ---------------------------------------------------------------- running
     def _save(self):
@@ -382,7 +383,25 @@ class Run:
             self.state, self.message = "failed", str(exc)
         finally:
             self._save()
+            self._mark_undone()
             self.session.after_run(self.steps, undo=bool(self.undo_of))
+
+    def _mark_undone(self):
+        """In the original run's log, steps that were put back aren't put back twice by a later Undo."""
+        undone = {s["of"] for s in self.steps if s.get("status") == "done" and s.get("of")}
+        if not self.undo_of or not undone:
+            return
+        path = runs_dir() / self.undo_of
+        try:
+            log = json.loads(path.read_text(encoding="utf-8"))
+            for s in log["steps"]:
+                if s.get("n") in undone and s.get("status") == "done":
+                    s["status"] = "undone"
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(log, indent=1), encoding="utf-8")
+            tmp.replace(path)
+        except (OSError, ValueError, KeyError):
+            pass
 
     def _do(self, step):
         op = step["op"]
@@ -408,21 +427,29 @@ class Run:
                 step["note"] = "Was already there."
 
 
-def undo_steps(log):
-    """Steps that reverse a finished run, newest first."""
+def moved_steps(log):
+    """What a run moved that can still be put back one by one, newest first."""
+    return [{"n": s["n"], "label": s["label"], "trash": s["op"] == "trash"} for s in reversed(log["steps"])
+            if s.get("status") == "done" and s["op"] in ("move", "trash", "tuck")]
+
+
+def undo_steps(log, only=None):
+    """Steps that reverse a finished run (or just the steps numbered in `only`), newest first."""
     out = []
     for s in reversed(log["steps"]):
-        if s.get("status") != "done":
+        if s.get("status") != "done" or (only is not None and s.get("n") not in only):
             continue
         if s["op"] in ("move", "trash", "tuck"):
             out.append(dict(op="move", obj=s["obj"], frm=s.get("dest_id"), dest=s["frm"], unit=s.get("unit"),
-                            units=s.get("units"), cat=s.get("cat"), label="Put back: " + s["label"], status="todo"))
+                            units=s.get("units"), cat=s.get("cat"), label="Put back: " + s["label"], status="todo",
+                            of=s.get("n")))
         elif s["op"] == "rename":
             out.append(dict(op="rename", obj=s["obj"], name=s["old"], old=s["name"],
-                            label=f'Rename “{s["name"]}” back to “{s["old"]}”', status="todo"))
+                            label=f'Rename “{s["name"]}” back to “{s["old"]}”', status="todo", of=s.get("n")))
         elif s["op"] == "create" and s.get("created"):
             out.append(dict(op="trash", obj=s["created"], frm=None, dest="@trash", unit=None, cat=None,
-                            label=f'Send the new empty folder “{s["name"]}” to Trash', status="todo", empty_only=True))
+                            label=f'Send the new empty folder “{s["name"]}” to Trash', status="todo", empty_only=True,
+                            of=s.get("n")))
     for i, s in enumerate(out):
         s["n"] = i + 1
     return out

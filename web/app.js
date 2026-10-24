@@ -1294,13 +1294,59 @@ function runPanel(st) {
       h("button", { type: "button", class: "btn primary", onclick: () => api("/api/run/pause", { method: "POST", body: {} }).then(() => planPage()) }, r.state === "paused" ? "Resume" : "Pause"),
       h("button", { type: "button", class: "btn", onclick: () => api("/api/run/stop", { method: "POST", body: {} }).then(() => planPage()) }, r.state === "paused" ? "Stop" : "Stop after this step"),
       r.state === "paused" ? h("p", { class: "muted small" },
-        "Resume carries on with the plan as it was when you pressed Run. To change where things go, press Stop, fix them on the Sort page, then run again — moves already made stay done, and Undo can put them back.") : null)
+        "Resume carries on with the plan as it was when you pressed Run. To change where things go, press Stop — moves already made stay done, and “Put some back…” returns just the ones you pick. Then fix them on the Sort page and run again.") : null)
       : (!r.undo && r.done ? h("div", { class: "toolbar" },
           h("button", { type: "button", class: "btn", onclick: async () => {
-            try { await api("/api/run/undo", { method: "POST", body: { log: r.log } }); planPage(); } catch (err) { toast(err.message); } } }, "Undo this run")) : null),
+            try { await api("/api/run/undo", { method: "POST", body: { log: r.log } }); planPage(); } catch (err) { toast(err.message); } } }, "Undo this run"),
+          putBackButton(r.log))
+        : r.undo && r.undo_of ? h("div", { class: "toolbar" }, putBackButton(r.undo_of, "Put back more…")) : null),
     r.recent.length ? h("ol", { class: "runlog box" }, r.recent.slice().reverse().map((l) => h("li", {}, "✓ ", l))) : null,
     r.problems.length ? h("div", { class: "confirm" }, h("b", {}, `${r.problems.length} step(s) didn't happen:`),
       h("ul", {}, r.problems.slice(-10).map((p) => h("li", {}, `${p.label} — ${p.note}`)))) : null);
+}
+
+// Put back only some of what a run moved, instead of undoing all of it.
+function putBackButton(log, text) {
+  return h("button", { type: "button", class: "btn ghost", onclick: () => putBackDialog(log) }, text || "Put some back…");
+}
+
+async function putBackDialog(log) {
+  let data;
+  try { data = await api(`/api/run/moved?log=${encodeURIComponent(log)}`); } catch (err) { return toast(err.message); }
+  if (!data.moved.length) return toast("Nothing left in that run to put back.");
+  const picked = new Set();
+  const list = h("ul", { class: "runlog box putback" });
+  const go = h("button", { type: "button", class: "btn primary", disabled: true }, "Put back");
+  const draw = (q) => {
+    const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+    const rows = data.moved.filter((m) => words.every((w) => m.label.toLowerCase().includes(w))).slice(0, 400);
+    list.replaceChildren(...rows.map((m) => h("li", {}, h("label", {},
+      h("input", { type: "checkbox", checked: picked.has(m.n) ? true : null, onchange: (e) => {
+        e.target.checked ? picked.add(m.n) : picked.delete(m.n);
+        go.disabled = !picked.size; go.textContent = picked.size ? `Put back ${plural(picked.size, "thing")}` : "Put back";
+      } }), " ", m.label))));
+    if (!rows.length) list.append(h("li", { class: "muted" }, "Nothing matches."));
+  };
+  const filter = h("input", { type: "search", placeholder: "Filter by name", oninput: (e) => draw(e.target.value) });
+  const close = () => box.remove();
+  go.addEventListener("click", async () => {
+    try {
+      await api("/api/run/undo", { method: "POST", body: { log, steps: [...picked] } });
+      close(); toast(`Putting back ${plural(picked.size, "thing")}`); planPage();
+    } catch (err) { toast(err.message); }
+  });
+  const box = h("section", { class: "panel putback-panel" },
+    h("h2", {}, "Put some back"),
+    h("p", { class: "muted small" }, "Newest first. Each one goes back to the folder it came from; everything else this run did stays done. Things you already moved by hand in Firestorm are left where you put them."),
+    h("div", { class: "toolbar" }, filter),
+    list,
+    h("div", { class: "toolbar" }, go, h("button", { type: "button", class: "btn", onclick: close }, "Cancel")));
+  draw("");
+  const panel = view.querySelector(".runpanel") || view.querySelector(".head");
+  view.querySelector(".putback-panel")?.remove();
+  panel.after(box);
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  filter.focus();
 }
 
 async function planPage() {
@@ -1372,7 +1418,8 @@ async function planPage() {
     st.runs.length && !running ? h("details", { class: "panel" }, h("summary", {}, "Earlier runs"),
       h("ul", { class: "plist" }, st.runs.map((name) => h("li", {}, name.replace("run-", "").replace(".json", ""),
         h("button", { type: "button", class: "btn ghost", onclick: async () => {
-          try { await api("/api/run/undo", { method: "POST", body: { log: name } }); planPage(); } catch (err) { toast(err.message); } } }, "Undo"))))) : null,
+          try { await api("/api/run/undo", { method: "POST", body: { log: name } }); planPage(); } catch (err) { toast(err.message); } } }, "Undo"),
+        putBackButton(name))))) : null,
   );
   if (running || (!b.ready && (b.launched || b.connected))) {
     runTimer = setInterval(async () => {

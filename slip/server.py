@@ -402,9 +402,12 @@ def make_handler(state: AppState):
                     if not name.startswith("run-") or not path.is_file():
                         return self._error("That run log wasn't found.")
                     log = json.loads(path.read_text(encoding="utf-8"))
-                    steps = runner.undo_steps(log)
+                    only = body.get("steps")
+                    only = {int(n) for n in only} if isinstance(only, list) else None
+                    steps = runner.undo_steps(log, only)
                     if not steps:
-                        return self._error("Nothing in that run to undo.")
+                        return self._error("Nothing in that run to undo." if only is None
+                                           else "Those were already put back.")
                     state.run = runner.Run(state.hub, state.sorting(), steps, undo_of=name)
                     state.run.start()
                     return self._json(state.run.status())
@@ -456,6 +459,12 @@ def make_handler(state: AppState):
                 sess = state.sorting()
                 steps = runner.build_steps(sess, rename_old=q.get("rename", "1") != "0")
                 return self._json(runner.summarize(steps, sess))
+            if path == "/api/run/moved":
+                name = Path(q.get("log", "")).name
+                p = runner.runs_dir() / name
+                if not name.startswith("run-") or not p.is_file():
+                    raise LookupError("That run log wasn't found.")
+                return self._json({"log": name, "moved": runner.moved_steps(json.loads(p.read_text(encoding="utf-8")))})
             if path == "/api/run/status":
                 runs = sorted((p.name for p in runner.runs_dir().glob("run-*.json")), reverse=True)[:10]
                 return self._json({"bridge": state.hub.status(), "run": state.run.status() if state.run else None,
