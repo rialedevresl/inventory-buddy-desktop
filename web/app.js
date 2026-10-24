@@ -947,12 +947,34 @@ function sortCard(u, tree, current) {
       u.appearance ? "Clothing or body part with no clear name — use Move… or drag it." : "No good guess — use Move… or drag it.") : null,
     productTools,
     h("div", { class: "sfoot" }, move,
+      current !== "trash" ? h("button", { type: "button", class: "btn ghost why-btn", title: "Why is it here?",
+        onclick: (e) => { e.stopPropagation(); toggleWhy(card, u.id); } }, "Why?") : null,
       current !== "trash" ? h("button", { type: "button", class: "icon-btn trash-btn", title: "Mark for Trash (you'll review it before anything happens)",
         "aria-label": `Mark ${u.name} for Trash`,
         onclick: () => moveUnits([u.id], "trash", "To Trash (marked — review before running)").catch((err) => toast(err.message)) },
         icon("trash", 18)) : null)];
   card.append(...clean(parts));
   return card;
+}
+
+// The reasons behind one thing's place or guess.
+async function toggleWhy(card, id) {
+  const open = card.querySelector(".whybox");
+  if (open) return open.remove();
+  let w;
+  try { w = await api(`/api/sort/why?id=${encodeURIComponent(id)}`); } catch (err) { return toast(err.message); }
+  const showGuess = w.guess && (!w.lead || w.guess_name !== w.dest);
+  const box = h("div", { class: "whybox", onclick: (e) => e.stopPropagation() },
+    w.lead ? h("p", {}, h("b", {}, w.lead)) : null,
+    showGuess ? h("p", { class: "muted small" }, w.lead ? `On its own, the app would guess ${w.guess_name}${w.unsure ? " (not sure)" : ""}:`
+      : `The app guesses ${w.guess_name}${w.unsure ? ", but isn’t sure" : ""}:`) : null,
+    !w.lead || showGuess ? h("ul", {}, w.reasons.map((r) => h("li", {}, r))) : null,
+    !w.lead && w.examples.length ? h("p", { class: "muted small" }, `Most like these you've already sorted there: ${w.examples.join(" · ")}`) : null,
+    !w.lead && w.others.length ? h("p", { class: "muted small" }, `Next best: ${w.others.join(", ")}`) : null,
+    h("p", { class: "muted small" }, w.learns
+      ? "This counts as an example: the app learns from what's in your category folders and what you move or check."
+      : "Guesses come from words for each category, plus what's in your category folders and what you've moved or checked. Move it to teach the app."));
+  card.append(box);
 }
 
 function updateSelBar() {

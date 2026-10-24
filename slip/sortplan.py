@@ -403,6 +403,30 @@ class SortSession:
             "folder": u.folder if u.kind in ("product", "piece") else None,
         }
 
+    def why(self, raw):
+        """Why a thing is headed where it is: the reasons shown in its "Why?" box."""
+        with self.lock:
+            uid = raw if raw in self.sorter.units else self._resolve(raw)
+            if not uid:
+                raise LookupError("That isn't in the sort list any more.")
+            u = self.sorter.units[uid]
+            dest, how = self.destinations().get(uid, (UNSURE, "suggested"))
+            subs = self.sorter.subs
+            name = lambda c: SPECIAL.get(c) or (subs[c]["name"] if c in subs else  # noqa: E731
+                                                "Trash" if c == TRASH else "Not sure yet")
+            out = self.sorter.explain(u)
+            lead = {
+                "you": f"You put it in {name(dest)} yourself.",
+                "checked": f"It was in {name(dest)} when you checked that category, so it stays.",
+                "already": f"It's already in your {name(dest)} folder.",
+                "filed": f"It's in an older folder of yours for {name(dest)}: {self.inv.path_text(u.folder if u.kind == 'product' else u.parent)}.",
+            }.get(how)
+            out["dest"], out["how"], out["lead"] = name(dest), how, lead
+            out["guess_name"] = name(out["guess"]) if out["guess"] else None
+            out["others"] = [name(c) for c in out["others"]]
+            out["learns"] = how in ("you", "checked", "already", "filed")
+            return out
+
     def _copy_in(self, u, cat):
         """Is a same-named thing from the same creator already sitting in that category's folder?"""
         if self._copies is None:

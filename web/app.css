@@ -345,3 +345,8 @@ button.start-hit:focus-visible { outline: 3px solid #fff; box-shadow: 0 0 0 6px 
 .lfoot { border-top: 1px solid var(--line); padding-top: 14px; font-size: 13.5px; color: var(--ink-2); display: flex; flex-direction: column; gap: 4px; }
 .lfoot .fine { color: var(--muted); font-size: 12.5px; }
 @media (max-width: 560px) { .letter { padding: 24px 20px; } .letter .lart { width: 180px; height: 180px; } }
+
+.why-btn { min-height: 30px; padding: 0 10px; font-size: 13px; }
+.whybox { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--ground); border: 1px solid var(--line); font-size: 13px; }
+.whybox p { margin: 0 0 6px; }
+.whybox ul { margin: 0 0 6px; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }

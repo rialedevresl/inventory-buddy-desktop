@@ -682,7 +682,13 @@ class Sorter:
         if not u.hint:
             return None
         top, sub = TYPE_HINT[u.hint]
-        return self.by_name.get((top.lower(), sub.lower()))
+        cid = self.by_name.get((top.lower(), sub.lower()))
+        if cid:
+            # Its own name can pick another spot in the same top category ("Bangs" made of hair layers).
+            named = {c for c, _ in self._name_keywords(u) if self.subs[c]["top"] == self.subs[cid]["top"]}
+            if len(named) == 1 and cid not in named:
+                return named.pop()
+        return cid
 
     def suggest(self, u: Unit):
         """[(category id, confidence)] best first, and whether it's unsure."""
@@ -773,3 +779,80 @@ class Sorter:
         result = ([(c, round(v, 3)) for c, v in ranked], unsure or not ranked)
         self._cache[u.id] = result
         return result
+
+
+    # ------------------------------------------------------------------ explaining a guess
+    def explain(self, u: Unit, limit_examples=3):
+        """Plain reasons behind the app's guess for one thing, for the "Why?" box."""
+        ranked, unsure = self.suggest(u)
+        out = {"guess": ranked[0][0] if ranked else None, "unsure": unsure, "reasons": [], "examples": [],
+               "others": [c for c, _ in ranked[1:]]}
+        if u.kind == "piece":
+            out["reasons"].append("It's part of a product, so it goes wherever the product goes unless you move it.")
+            return out
+        best = out["guess"]
+        if best is None:
+            out["reasons"].append("Nothing in its name matched a category, and none of your sorted things look like it.")
+            return out
+        bname = self.subs[best]["name"]
+        if u.hint and self._type_category(u) == best:
+            top, sub = TYPE_HINT[u.hint]
+            if self.subs[best]["name"].lower() == sub.lower():
+                out["reasons"].append(f"Everything in it is a Second Life “{u.hint}” item, and those go to {bname}.")
+            else:
+                out["reasons"].append(f"It's made of “{u.hint}” items, and its name points to {bname}.")
+            return out
+        if u.textures and self.subs[best]["name"].lower() in ("textures & materials", "textures"):
+            out["reasons"].append("It's mostly textures and materials, with nothing to wear or rez.")
+            return out
+        if u.layers >= 0.6 or SKIN_WORDS.search(_without_store(u.name)):
+            if self._skin_category(u) == best:
+                out["reasons"].append("It's a skin or applier, and its name says which head or body it's for.")
+        own = sorted({kw.strip() for c, kw in self._name_keywords(u) if c == best})
+        if own:
+            out["reasons"].append(f"Its name has {', '.join('“' + k + '”' for k in own)}, a word for {bname}.")
+            for c, kw in self._name_keywords(u):
+                if c == best:
+                    v = self._kw_reliable(u, (c, kw))
+                    if v is False:
+                        out["reasons"].append(f"…but you've usually filed things with “{kw.strip()}” somewhere else.")
+        elif u.kind == "product":
+            inside = sorted({kw.strip() for c, kw, _ in self._kw_hits(u.text) if c == best})
+            if inside:
+                out["reasons"].append(f"Something inside it is named {', '.join('“' + k + '”' for k in inside[:3])}"
+                                      f" (a word for {bname}), but the product's own name doesn't say.")
+        # What it learned from your sorted folders.
+        wc, df = self.word_counts.get(best, {}), self.df
+        learned = sorted(((wc.get(w, 0), df.get(w, 0), w) for w in set(u.words) if wc.get(w, 0) >= 2),
+                         key=lambda x: (-x[0] / x[1], -x[0]))[:4]
+        if learned and self._nb_probs(u):
+            parts = [f"“{w}” ({k} of {n})" for k, n, w in learned]
+            out["reasons"].append(f"Words in its name that you've filed in {bname} before: {', '.join(parts)}.")
+        cr = self._creator_probs(u)
+        if cr.get(best, 0) >= 0.3:
+            n = sum(self.creator_cats[u.creator].values())
+            out["reasons"].append(f"{round(cr[best] * n)} of the {n} sorted things from this creator are in {bname}.")
+        if unsure:
+            out["reasons"].append("The signals were weak or mixed, so it's only a guess.")
+        # A few sorted things it most resembles in that category.
+        mine = set(u.words)
+        sims = []
+        for o in self.units.values():
+            if o.id == u.id or o.kind == "piece":
+                continue
+            if (o.current or o.learned) != best:
+                continue
+            shared = len(mine & set(o.words))
+            if shared:
+                sims.append((shared, o.name))
+        out["examples"] = [n for _, n in sorted(sims, key=lambda x: (-x[0], x[1].lower()))[:limit_examples]]
+        if not out["reasons"]:
+            out["reasons"].append("Several small hints added up; none stood out on its own.")
+        return out
+
+    def _kw_hits(self, text):
+        text = norm_text(text)
+        for word in set(text.split()):
+            for cid, kw, n in self.kw_index.get(word, ()):
+                if kw in text:
+                    yield cid, kw, n

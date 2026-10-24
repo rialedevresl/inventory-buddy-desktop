@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .keywords import APPEARANCE, SEED
 
-VERSION = 5
+VERSION = 6
 
 
 def _decor(top, prefix_map):
@@ -84,7 +84,8 @@ STARTER = [
     ("Hair", [], [("Long Straight & Wavy", ["Long + Straight/Wavey"]), ("Long Curly", ["Long + Curly"]),
                   ("Medium & Shoulder Length", ["Medium + Shoulder Length"]), ("Short & Bobs", ["Short + Bobs"]),
                   ("Ponytails & Half-up", ["Half-up + Ponytail"]), ("Buns", []),
-                  ("Hairbases", ["Hairbase + Style", "Hairbases - Newer"]), ("Hat Hair", [])]),
+                  ("Hairbases", ["Hairbase + Style", "Hairbases - Newer"]), ("Hair Extras", []),
+                  ("Hat Hair", [])]),
     ("Head & Face", [], [("Mesh Heads", []), ("Face Skins & Appliers", ["Face Appliers"]), ("Eyes", []),
                          ("Eyebrows", []), ("Eyelashes", []),
                          ("Makeup & Lipstick", ["Make Up", "Lipstick & Lipgloss"]), ("Face Details", []),
@@ -187,7 +188,7 @@ def validate(data):
             seen.add(kn.lower())
             kw = k.get("keywords")
             if kw is None:
-                kw = SEED.get(kn, [])     # older saved files: fill in the starter words
+                kw = _starter_keywords(name, kn, k.get("aliases") or []) or []   # new or older: starter words
             kw = [str(w).strip().lower()[:40] for w in kw if str(w).strip()][:120]
             kids.append({"id": str(k.get("id") or _nid())[:20], "name": kn, "keywords": kw,
                          "aliases": _clean_list(k.get("aliases"), 12, NAME_MAX)})

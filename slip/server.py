@@ -469,6 +469,8 @@ def make_handler(state: AppState):
                 runs = sorted((p.name for p in runner.runs_dir().glob("run-*.json")), reverse=True)[:10]
                 return self._json({"bridge": state.hub.status(), "run": state.run.status() if state.run else None,
                                    "inventory_root": state.inv.root if state.inv else None, "runs": runs})
+            if path == "/api/sort/why":
+                return self._json(state.sorting().why(q.get("id", "")))
             if path == "/api/sort/folders":
                 return self._json(state.sorting().top_folders())
             if path == "/api/sort/tree":
