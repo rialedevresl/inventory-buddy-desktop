@@ -742,21 +742,36 @@ function renderCats() {
         h("button", { class: "btn danger", type: "button", onclick: async () => { confirming = null; cats = await api("/api/categories/reset", { method: "POST", body: {} }); TREE = null; toast("Reset to defaults"); renderCats(); } }, "Reset"),
         h("button", { class: "btn", type: "button", onclick: () => { confirming = null; renderCats(); } }, "Cancel"))
     : h("button", { class: "btn", type: "button", onclick: () => { confirming = { reset: true }; renderCats(); } }, "Reset to starter list");
-  const pf = cats.parent_folder || { on: false, name: "Sorted" };
-  const pfName = h("input", { value: pf.name, maxlength: "63", "aria-label": "Parent folder name", disabled: pf.on ? null : true });
-  pfName.addEventListener("change", () => {
-    const v = pfName.value.trim();
-    if (!v || v === pf.name) { pfName.value = pf.name; return; }
-    cats.parent_folder = { on: pf.on, name: v }; saveCats();
-  });
+  const pf = Object.assign({ on: false, name: "Sorted", split: false, appearance: "Appearance", home: "Home & Land" }, cats.parent_folder || {});
+  const setPf = (patch) => { cats.parent_folder = Object.assign({}, pf, patch); saveCats(); };
+  const nameBox = (key, label) => {
+    const el = h("input", { value: pf[key], maxlength: "63", "aria-label": label, disabled: pf.on ? null : true });
+    el.addEventListener("change", () => {
+      const v = el.value.trim();
+      if (!v || v === pf[key]) { el.value = pf[key]; return; }
+      setPf({ [key]: v });
+    });
+    return el;
+  };
   const pfOn = h("input", { type: "checkbox", checked: pf.on ? true : null });
-  pfOn.addEventListener("change", () => { cats.parent_folder = { on: pfOn.checked, name: pfName.value.trim() || pf.name }; saveCats(); });
+  pfOn.addEventListener("change", () => setPf({ on: pfOn.checked }));
+  const spOn = h("input", { type: "checkbox", checked: pf.split ? true : null, disabled: pf.on ? null : true });
+  spOn.addEventListener("change", () => setPf({ split: spOn.checked }));
+  const APPEAR = ["clothing", "shoes", "jewelry", "accessories", "hair", "head & face", "body", "held & worn accessories", "animations", "pets"];
+  const groupOf = (top) => top.group || (APPEAR.includes(top.name.toLowerCase()) ? "appearance" : "home");
+  const groupList = (g) => h("div", { class: "chips groupchips" }, cats.categories.filter((top) => groupOf(top) === g).map((top) =>
+    h("button", { type: "button", class: "chip", title: `Move “${top.name}” to ${g === "appearance" ? pf.home : pf.appearance}`,
+      onclick: () => { top.group = g === "appearance" ? "home" : "appearance"; saveCats(); } }, top.name, " ⇄")));
   const parentPanel = h("section", { class: "panel" },
-    h("label", { class: "toggle" }, pfOn, h("b", {}, "Keep all category folders inside one folder")),
-    h("div", { class: "addrow" }, h("span", { class: "muted small" }, "Folder name"), pfName),
-    h("p", { class: "muted small" }, pf.on
-      ? `New category folders are made inside “${pf.name}”, and the ones you already have in My Inventory are moved into it when a run uses them. You’ll see every one of these moves on Plan & Run before anything happens.`
-      : "Off: category folders sit directly in My Inventory."));
+    h("label", { class: "toggle" }, pfOn, h("b", {}, "Keep category folders inside a parent folder")),
+    pf.on && pf.split ? null : h("div", { class: "addrow" }, h("span", { class: "muted small" }, "Folder name"), nameBox("name", "Parent folder name")),
+    h("label", { class: "toggle" }, spOn, h("b", {}, "Use two parent folders: one for appearance, one for everything else")),
+    pf.on && pf.split ? h("div", { class: "splitgrid" },
+      h("div", {}, h("div", { class: "addrow" }, h("span", { class: "muted small" }, "Appearance folder"), nameBox("appearance", "Appearance folder name")), groupList("appearance")),
+      h("div", {}, h("div", { class: "addrow" }, h("span", { class: "muted small" }, "Everything else"), nameBox("home", "Other parent folder name")), groupList("home"))) : null,
+    h("p", { class: "muted small" }, !pf.on ? "Off: category folders sit directly in My Inventory."
+      : pf.split ? `Click a category to switch it to the other folder. Category folders already in My Inventory${pf.name ? ` or “${pf.name}”` : ""} are moved into the right one when a run uses them. You’ll see every move on Plan & Run first.`
+      : `New category folders are made inside “${pf.name}”, and the ones you already have in My Inventory are moved into it when a run uses them. You’ll see every one of these moves on Plan & Run before anything happens.`));
   const wfOn = h("input", { type: "checkbox", checked: cats.whole_folders !== false ? true : null });
   wfOn.addEventListener("change", () => { cats.whole_folders = wfOn.checked; saveCats(); });
   const thOn = h("input", { type: "checkbox", checked: THUMBS_ON ? true : null });
@@ -1426,7 +1441,7 @@ async function planPage() {
         h("ul", { class: "plist" }, pv.renames.map((r) => h("li", {}, `“${r.old}” → “${r.new}”`)))) : null,
       pv.creates.length ? h("details", {}, h("summary", {}, `Create ${plural(pv.creates.length, "new folder")}`),
         h("ul", { class: "plist" }, pv.creates.map((c) => h("li", {}, c)))) : null,
-      pv.tucks && pv.tucks.length ? h("details", {}, h("summary", {}, `Move ${plural(pv.tucks.length, "category folder")} into “${pv.parent}”`),
+      pv.tucks && pv.tucks.length ? h("details", {}, h("summary", {}, pv.parent.includes(" / ") ? `Move ${plural(pv.tucks.length, "category folder")} into their parent folders` : `Move ${plural(pv.tucks.length, "category folder")} into “${pv.parent}”`),
         h("ul", { class: "plist" }, pv.tucks.map((c) => h("li", {}, c)))) : null,
       pv.groups.map((g) => h("details", {}, h("summary", {}, h("b", {}, `${g.top} › ${g.name}`), ` — ${fmt(g.items.length)} moving in`),
         h("ul", { class: "plist" }, g.items.slice(0, 300).map((n) => h("li", {}, n)),

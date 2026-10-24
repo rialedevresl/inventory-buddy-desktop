@@ -127,17 +127,22 @@ def _starter_keywords(top, sub, aliases):
     return APPEARANCE.get(f"{top}/{sub}")
 
 
-PARENT_DEFAULT = {"on": False, "name": "Sorted"}
+PARENT_DEFAULT = {"on": False, "name": "Sorted", "split": False, "appearance": "Appearance", "home": "Home & Land"}
 
 
 def _parent_folder(value):
-    """The optional one folder all category folders go inside (e.g. "Sorted")."""
+    """The optional folder all category folders go inside (e.g. "Sorted"), or two of them:
+    one for appearance categories and one for everything else."""
     value = value if isinstance(value, dict) else {}
-    try:
-        name = clean_name(value.get("name") or PARENT_DEFAULT["name"])
-    except ValueError:
-        name = PARENT_DEFAULT["name"]
-    return {"on": bool(value.get("on")), "name": name}
+    out = {"on": bool(value.get("on")), "split": bool(value.get("split"))}
+    for k in ("name", "appearance", "home"):
+        try:
+            out[k] = clean_name(value.get(k) or PARENT_DEFAULT[k])
+        except ValueError:
+            out[k] = PARENT_DEFAULT[k]
+    if out["appearance"].lower() == out["home"].lower():
+        out["home"] = PARENT_DEFAULT["home"] if out["appearance"].lower() != "home & land" else "Home"
+    return out
 
 
 def defaults():
@@ -192,8 +197,11 @@ def validate(data):
             kw = [str(w).strip().lower()[:40] for w in kw if str(w).strip()][:120]
             kids.append({"id": str(k.get("id") or _nid())[:20], "name": kn, "keywords": kw,
                          "aliases": _clean_list(k.get("aliases"), 12, NAME_MAX)})
-        out.append({"id": str(top.get("id") or _nid())[:20], "name": name, "children": kids,
-                    "aliases": _clean_list(top.get("aliases"), 12, NAME_MAX)})
+        entry = {"id": str(top.get("id") or _nid())[:20], "name": name, "children": kids,
+                 "aliases": _clean_list(top.get("aliases"), 12, NAME_MAX)}
+        if top.get("group") in ("appearance", "home"):
+            entry["group"] = top["group"]
+        out.append(entry)
     # A top category's other name must not be another top category's own name (e.g. "Head & Face" also
     # answering to "Body"): folders would be read as the wrong category and the app would learn from that.
     tops = {t["name"].lower() for t in out}

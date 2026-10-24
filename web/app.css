@@ -350,3 +350,6 @@ button.start-hit:focus-visible { outline: 3px solid #fff; box-shadow: 0 0 0 6px 
 .whybox { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--ground); border: 1px solid var(--line); font-size: 13px; }
 .whybox p { margin: 0 0 6px; }
 .whybox ul { margin: 0 0 6px; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.splitgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 8px 0; }
+.groupchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.groupchips .chip { cursor: pointer; border: 1px solid var(--line); background: #fff; }

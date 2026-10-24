@@ -340,7 +340,9 @@ class SortSession:
         """Checked category id -> things in it now that weren't when you checked it."""
         d = d if d is not None else self.destinations()
         out = collections.defaultdict(set)
-        for uid, (cat, _) in d.items():
+        for uid, (cat, how) in d.items():
+            if how in ("already", "you"):
+                continue            # you put it there (in Firestorm or here): nothing new to look at
             if cat in self.approved and uid not in self.seen.get(cat, ()) and self.done.get(uid) != cat:
                 out[cat].add(uid)
         return out

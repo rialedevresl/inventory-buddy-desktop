@@ -61,6 +61,7 @@ TYPE_HINT = {
     "Eyes": ("Head & Face", "Eyes"),
     "Hair": ("Hair", "Hairbases"),
 }
+PARENT_DEFAULT_NAMES = {"appearance": "Appearance", "home": "Home & Land"}
 APPEARANCE_TOPS = {"clothing", "shoes", "jewelry", "accessories", "hair", "head & face", "body",
                    "held & worn accessories", "animations", "pets"}
 
@@ -239,7 +240,7 @@ class Sorter:
         inv = self.inv
         homes = getattr(self, "_homes", None)
         if homes is None:
-            homes = self._homes = app_made_folders() | ({self.parent_folder()} if self.parent_folder() else set())
+            homes = self._homes = app_made_folders() | self.parent_folder_ids()
         seen = 0
         while fid in inv.folders and fid != inv.root and seen < 200:
             if fid in homes:
@@ -257,11 +258,11 @@ class Sorter:
         category folders are made inside the parent instead."""
         subs, tops = collections.defaultdict(list), collections.defaultdict(list)
         inv = self.inv
-        parent = self.parent_folder()
-        top_homes = {inv.root} | ({parent} if parent else set())
+        parents = self.parent_folder_ids()
+        top_homes = {inv.root} | parents
         own = app_made_folders() if self.parent_setting() else None
 
-        homes = (own or set()) | ({parent} if parent else set())
+        homes = (own or set()) | parents
 
         def ours(fid):
             """Inside the parent folder or a folder this app made (or is one of those)."""
@@ -310,16 +311,45 @@ class Sorter:
     def whole_folders_setting(self):
         return bool(self.cats.get("whole_folders", True))
 
-    def parent_folder(self):
-        """The existing parent folder for all category folders (directly in My Inventory), if the option is on."""
-        name = self.parent_setting()
-        if not name:
+    def parent_names(self):
+        """Every parent folder name that counts as sorted (the single one, plus both halves when split)."""
+        if not self.parent_setting():
+            return []
+        p = self.cats.get("parent_folder") or {}
+        names = [p["name"]]
+        if p.get("split"):
+            names += [p.get("appearance") or "Appearance", p.get("home") or "Home & Land"]
+        return names
+
+    def top_group(self, top):
+        g = top.get("group")
+        if g in ("appearance", "home"):
+            return g
+        return "appearance" if top["name"].lower() in APPEARANCE_TOPS else "home"
+
+    def parent_name_for(self, top):
+        """The parent folder this top category's folder belongs in (None with the option off)."""
+        if not self.parent_setting():
             return None
+        p = self.cats.get("parent_folder") or {}
+        if p.get("split"):
+            return p.get(self.top_group(top)) or PARENT_DEFAULT_NAMES[self.top_group(top)]
+        return p["name"]
+
+    def _root_folder(self, name):
         inv = self.inv
         hits = [fid for fid in inv.folders.get(inv.root).folders
                 if not inv.folders[fid].system and inv.folders[fid].name.strip().lower() == name.lower()] \
             if inv.root in inv.folders else []
         return max(hits, key=lambda x: len(inv.subtree(x)[0])) if hits else None
+
+    def parent_folder(self, name=None):
+        """The existing parent folder (directly in My Inventory) with this name, or the single one."""
+        name = name or self.parent_setting()
+        return self._root_folder(name) if name else None
+
+    def parent_folder_ids(self):
+        return {f for f in (self._root_folder(n) for n in self.parent_names()) if f}
 
     def _skip_folder(self, f):
         return f.hands_off or f.ptype == "trash" or bool(SKIP_FOLDER_NAMES.match(f.name))

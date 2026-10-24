@@ -46,33 +46,42 @@ def build_steps(session, rename_old=True):
         kw["n"] = len(steps) + 1
         steps.append(kw)
 
-    # Optional: every category folder lives inside one parent folder (e.g. "Sorted").
-    pname = sorter.parent_setting()
-    pfolder = sorter.parent_folder()
+    # Optional: category folders live inside a parent folder (e.g. "Sorted"), or one of two
+    # (appearance in one, everything else in the other).
+    parent_ids = sorter.parent_folder_ids()
     tucked = set()
 
-    def parent_ref():
-        if not pname:
+    def parent_ref(top):
+        pn = sorter.parent_name_for(top)
+        if not pn:
             return "@root"
-        if pfolder:
-            return pfolder
-        if "@parent" not in refs:
-            refs["@parent"] = "@parent"
-            add(op="create", parent="@root", name=pname, ref="@parent", label=f'Create folder “{pname}”')
-        return "@parent"
+        fid = sorter.parent_folder(pn)
+        if fid:
+            return fid
+        key = "@parent:" + pn.lower()
+        if key not in refs:
+            refs[key] = key
+            add(op="create", parent="@root", name=pn, ref=key, label=f'Create folder “{pn}”')
+        return key
 
-    def tuck(fid):
-        """An existing top category folder sitting in My Inventory goes into the parent folder."""
-        if not pname or fid in tucked or inv.folders[fid].parent != inv.root or fid == pfolder:
+    def tuck(fid, top):
+        """A top category folder in My Inventory (or in the wrong parent folder) goes into its parent folder."""
+        pn = sorter.parent_name_for(top)
+        f = inv.folders[fid]
+        if not pn or fid in tucked or fid in parent_ids or f.parent not in {inv.root} | parent_ids:
+            return
+        dest = parent_ref(top)
+        if dest == f.parent:
             return
         tucked.add(fid)
-        add(op="tuck", obj=fid, frm=inv.root, dest=parent_ref(), unit=None, cat=None,
-            uname=inv.folders[fid].name, label=f'Move folder “{inv.folders[fid].name}” into “{pname}”')
+        add(op="tuck", obj=fid, frm=f.parent, dest=dest, unit=None, cat=None, uname=f.name, pname=pn,
+            label=f'Move folder “{f.name}” into “{pn}”')
 
     def top_ref(top):
-        """The top category folder (in the parent folder, or My Inventory), made if it isn't there."""
+        """The top category folder (in its parent folder, or My Inventory), made if it isn't there."""
         tkey = "@top:" + top["id"]
         if tkey not in refs:
+            pn = sorter.parent_name_for(top)
             tf = (top_f.get(top["id"]) or [None])[0]
             if tf:
                 refs[tkey] = tf
@@ -80,11 +89,11 @@ def build_steps(session, rename_old=True):
                     renamed.add(tf)
                     add(op="rename", obj=tf, name=top["name"], old=inv.folders[tf].name,
                         label=f'Rename folder “{inv.folders[tf].name}” to “{top["name"]}”')
-                tuck(tf)
+                tuck(tf, top)
             else:
                 refs[tkey] = tkey
-                add(op="create", parent=parent_ref(), name=top["name"], ref=tkey,
-                    label=f'Create folder “{pname + " › " if pname else ""}{top["name"]}”')
+                add(op="create", parent=parent_ref(top), name=top["name"], ref=tkey,
+                    label=f'Create folder “{pn + " › " if pn else ""}{top["name"]}”')
         return refs[tkey]
 
     adopted = getattr(sorter, "adopted", {})
@@ -104,9 +113,11 @@ def build_steps(session, rename_old=True):
                 add(op="rename", obj=existing, name=sub["name"], old=f.name,
                     label=f'Rename folder “{f.name}” to “{sub["name"]}”')
             dest = top_ref(top)
+            pn = sorter.parent_name_for(top)
             add(op="tuck", obj=existing, frm=f.parent, dest=dest, unit=None, cat=None, uname=sub["name"],
+                pname=f'{pn + " › " if pn else ""}{top["name"]}',
                 label=f'Move folder “{sub["name"]}” (was “{f.name}” in {inv.path_text(f.parent)}) into '
-                      f'“{pname + " › " if pname else ""}{top["name"]}”')
+                      f'“{pn + " › " if pn else ""}{top["name"]}”')
             continue
         if existing:
             refs[sid] = existing
@@ -122,7 +133,7 @@ def build_steps(session, rename_old=True):
                 add(op="rename", obj=parent, name=top["name"], old=inv.folders[parent].name,
                     label=f'Rename folder “{inv.folders[parent].name}” to “{top["name"]}”')
             if parent in (top_f.get(top["id"]) or []):
-                tuck(parent)
+                tuck(parent, top)
             continue
         tref = top_ref(top)
         skey = "@sub:" + sid
@@ -193,7 +204,7 @@ def _whole_folders(session, plan):
             continue
         if fid == inv.root or f.parent not in inv.folders or f.system or f.folders or inv.in_trash(fid) \
                 or inv.hands_off(fid) or inv.skipped_by(fid) or inv.is_category_folder(fid) \
-                or fid == sorter.parent_folder():
+                or fid in sorter.parent_folder_ids():
             continue
         if len(f.items) != len(entries):          # links, or something not going along
             continue
@@ -219,8 +230,8 @@ def summarize(steps, session):
         "folders": sum(1 for s in steps if s["op"] == "move" and s.get("units")),
         "creates": [s["label"].replace("Create folder ", "").strip('“”') for s in steps if s["op"] == "create"],
         "renames": [{"old": s["old"], "new": s["name"]} for s in steps if s["op"] == "rename"],
-        "tucks": [s["uname"] for s in steps if s["op"] == "tuck"],
-        "parent": session.sorter.parent_setting(),
+        "tucks": [f'{s["uname"]} → {s["pname"]}' if s.get("pname") else s["uname"] for s in steps if s["op"] == "tuck"],
+        "parent": " / ".join(session.sorter.parent_names()[1:] or session.sorter.parent_names()),
         "trash": [{"name": s["uname"], "where": s.get("where", ""), "nocopy": s.get("nocopy", False),
                    "unit": s["unit"], "ktype": session._ktype(session.sorter.units[s["unit"]])
                    if s["unit"] in session.sorter.units else "Other"} for s in steps if s["op"] == "trash"],
@@ -295,11 +306,11 @@ class Run:
     def _template(self):
         """An empty folder to copy when a new folder is needed."""
         inv = self.session.inv
-        pname = (self.session.sorter.parent_setting() or "").lower()
+        pnames = {n.lower() for n in self.session.sorter.parent_names()}
         cands = [f for f in inv.folders.values()
                  if not f.system and not inv.in_trash(f.id) and f.id != inv.root and not f.folders and not f.items
                  and not inv.hands_off(f.id) and not inv.skipped_by(f.id) and not inv.is_category_folder(f.id)
-                 and f.name.strip().lower() != pname]
+                 and f.name.strip().lower() not in pnames]
         cands.sort(key=lambda f: (f.name != TEMPLATE_NAME, f.name.lower()))
         for f in cands[:25]:
             try:
