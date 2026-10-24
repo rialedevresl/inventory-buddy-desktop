@@ -307,10 +307,10 @@ class SortSession:
                 out[uid] = (u.special, "checked" if checked else "suggested")
             elif u.kind == "piece":
                 continue                      # a piece stays with its product (or where it is) unless you move it
+            elif u.current:
+                out[uid] = (u.current, "already")      # in a category folder: stays, even if you moved it there
             elif uid in self.locked and self.locked[uid] in self.approved:
                 out[uid] = (self.locked[uid], "checked")
-            elif u.current:
-                out[uid] = (u.current, "already")
             elif u.learned:
                 out[uid] = (u.learned, "filed")    # in an old folder of yours for this category
             else:
